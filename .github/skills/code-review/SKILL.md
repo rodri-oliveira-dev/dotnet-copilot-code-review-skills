@@ -3,8 +3,8 @@ name: dotnet-code-review
 description: >-
   Reviews .NET and C# pull request changes for correctness, security, async and
   concurrency issues, persistence defects, performance regressions, API
-  contract problems, testing gaps, and architecture risks. Use for pull request
-  and code review tasks in modern .NET repositories.
+  contracts, testing gaps, architecture risks, and MSBuild/NuGet configuration.
+  Use for pull request and code review tasks in modern .NET repositories.
 ---
 
 # .NET Code Review
@@ -37,7 +37,8 @@ Identify:
 - persistence or state transitions;
 - asynchronous/background behavior;
 - operationally important paths;
-- tests intended to protect the change.
+- tests intended to protect the change;
+- build, packaging, or target-framework changes.
 
 If the implementation appears to contradict the pull request intent, treat that as a correctness concern rather than a style concern.
 
@@ -52,7 +53,8 @@ Always consider:
 - resource lifetime;
 - async/cancellation/concurrency correctness;
 - error behavior;
-- regression coverage.
+- regression coverage;
+- build and package compatibility when project configuration changes.
 
 ### 3. Load specialist references only when relevant
 
@@ -68,6 +70,7 @@ Read the reference files below when the changed code contains matching signals.
 | authentication, authorization, secrets, untrusted input, cryptography | `references/security.md` |
 | tests or meaningful behavior changes | `references/testing.md` |
 | boundaries, dependency direction, public abstractions, cross-module changes | `references/architecture.md` |
+| `.csproj`, `.props`, `.targets`, `Directory.Build.*`, `Directory.Packages.props`, `global.json`, NuGet/package/publish changes | `references/msbuild.md` |
 
 Do not load every reference simply because it exists. Keep the review focused on the changed surface.
 
@@ -104,7 +107,8 @@ Use for likely production defects such as:
 - resource exhaustion or serious connection/thread-pool risk;
 - transaction or persistence consistency defects;
 - major performance regression on a known high-volume path;
-- missing regression protection for a high-risk fix when failure is otherwise likely.
+- missing regression protection for a high-risk fix when failure is otherwise likely;
+- build/package configuration that breaks supported consumers or deployment targets.
 
 ### MEDIUM
 
@@ -114,7 +118,8 @@ Use for concrete but non-blocking issues such as:
 - avoidable repeated database/network work;
 - fragile tests;
 - architectural coupling that violates an established boundary;
-- performance issues whose impact depends on scale or hot-path status.
+- performance issues whose impact depends on scale or hot-path status;
+- project-system configuration likely to drift or behave differently across targets/environments.
 
 ### LOW
 
@@ -152,6 +157,7 @@ Do not report:
 - "use Span/ValueTask/ArrayPool" without hot-path evidence;
 - "replace LINQ with loops" outside a demonstrated performance-sensitive path;
 - blanket `ConfigureAwait(false)` recommendations in application code;
+- demands to adopt newer project-system features solely because they are newer;
 - comments that only praise code without helping merge quality;
 - duplicate comments caused by the same root issue.
 
@@ -166,7 +172,8 @@ A pull request can be incorrect even when each file looks locally valid. Trace c
 - authentication/authorization checks;
 - configuration registration and DI lifetime changes;
 - public API implementation plus tests;
-- producer/consumer schema changes.
+- producer/consumer schema changes;
+- project file -> shared props/targets -> CI/publish behavior.
 
 ## Test review
 
@@ -179,6 +186,10 @@ Correctness comes before micro-optimization. Performance comments should describ
 ## Architecture review
 
 Treat the repository's existing architecture as context, not universal truth. Flag architectural issues when the change violates an established dependency/boundary rule or creates a concrete coupling, deployment, testing, ownership, or change-amplification problem.
+
+## Project-system review
+
+Treat MSBuild evaluation as repository-wide context. When project files change, inspect central props/targets, target frameworks, package management, and publish configuration before claiming the local XML is wrong.
 
 ## Completion
 
