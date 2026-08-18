@@ -1,8 +1,14 @@
+<p align="center">
+  <strong>English</strong> · <a href="./README.pt-BR.md">Português (Brasil)</a>
+</p>
+
 # .NET Copilot Code Review Skills
 
 Reusable GitHub Copilot instructions and agent skills for reviewing .NET and C# pull requests with a strong focus on correctness, security, performance, async/concurrency, persistence, testing, APIs, architecture, MSBuild, and NuGet.
 
 The goal is to make Copilot Code Review behave more like an experienced .NET reviewer and less like a style linter: findings should be high-confidence, tied to concrete impact, and limited to changes introduced or materially affected by the pull request.
+
+> Copilot instructions for this language: [`.github/copilot-instructions.md`](./.github/copilot-instructions.md)
 
 ## What this repository provides
 
@@ -31,11 +37,18 @@ Commit these files to the branch being reviewed. GitHub Copilot Code Review read
 
 Then request **Copilot** as a reviewer on a pull request, or configure automatic Copilot reviews in the repository settings.
 
+### Using the Portuguese instructions
+
+GitHub Copilot automatically recognizes the canonical `.github/copilot-instructions.md` path. The Portuguese translation is stored as `.github/copilot-instructions.pt-BR.md` so both language versions can coexist in this repository.
+
+To use the Portuguese instructions in a target repository, copy `.github/copilot-instructions.pt-BR.md` and save it there as `.github/copilot-instructions.md`.
+
 ## Repository structure
 
 ```text
 .github/
 ├── copilot-instructions.md
+├── copilot-instructions.pt-BR.md
 ├── instructions/
 │   ├── aspnetcore.instructions.md
 │   ├── csharp.instructions.md
@@ -62,6 +75,7 @@ Then request **Copilot** as a reviewer on a pull request, or configure automatic
 | File | Purpose |
 | --- | --- |
 | `.github/copilot-instructions.md` | Defines the global review contract: diff-first analysis, high-confidence findings, severity levels, evidence requirements, and noise-reduction rules. |
+| `.github/copilot-instructions.pt-BR.md` | Portuguese (Brazil) translation of the global review contract. Rename/copy it to the canonical `copilot-instructions.md` path when Portuguese instructions should be active. |
 | `instructions/csharp.instructions.md` | Reviews C# language usage, nullability, exceptions, resource disposal, cancellation, naming, and modern language features without forcing stylistic preferences. |
 | `instructions/aspnetcore.instructions.md` | Reviews ASP.NET Core endpoints, middleware, DI lifetimes, authentication/authorization, validation, Problem Details, configuration, health checks, and HTTP semantics. |
 | `instructions/testing.instructions.md` | Reviews unit/integration tests for meaningful assertions, determinism, isolation, edge cases, async correctness, and excessive mocking. |
