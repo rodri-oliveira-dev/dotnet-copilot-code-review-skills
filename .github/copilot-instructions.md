@@ -1,4 +1,10 @@
+<p align="center">
+  <strong>English</strong> · <a href="./copilot-instructions.pt-BR.md">Português (Brasil)</a>
+</p>
+
 # Copilot Code Review Instructions
+
+> Documentation for this language: [`README.md`](../README.md)
 
 When performing a code review in a .NET repository, use the review workflow in `.github/skills/code-review/SKILL.md` when it is relevant.
 
