@@ -1,6 +1,6 @@
 # .NET Copilot Code Review Skills
 
-Reusable GitHub Copilot instructions and agent skills for reviewing .NET and C# pull requests with a strong focus on correctness, security, performance, async/concurrency, persistence, testing, APIs, and architecture.
+Reusable GitHub Copilot instructions and agent skills for reviewing .NET and C# pull requests with a strong focus on correctness, security, performance, async/concurrency, persistence, testing, APIs, architecture, MSBuild, and NuGet.
 
 The goal is to make Copilot Code Review behave more like an experienced .NET reviewer and less like a style linter: findings should be high-confidence, tied to concrete impact, and limited to changes introduced or materially affected by the pull request.
 
@@ -9,7 +9,7 @@ The goal is to make Copilot Code Review behave more like an experienced .NET rev
 This repository separates always-on guidance from task-specific review knowledge:
 
 - `.github/copilot-instructions.md` contains repository-wide review behavior.
-- `.github/instructions/*.instructions.md` contains path-specific rules for C#, ASP.NET Core, tests, and persistence code.
+- `.github/instructions/*.instructions.md` contains path-specific rules for C#, ASP.NET Core, tests, persistence, and the .NET project system.
 - `.github/skills/code-review/SKILL.md` orchestrates the review workflow.
 - `.github/skills/code-review/references/*.md` contains focused checklists that the skill can load only when relevant.
 
@@ -37,10 +37,11 @@ Then request **Copilot** as a reviewer on a pull request, or configure automatic
 .github/
 ├── copilot-instructions.md
 ├── instructions/
-│   ├── csharp.instructions.md
 │   ├── aspnetcore.instructions.md
-│   ├── testing.instructions.md
-│   └── persistence.instructions.md
+│   ├── csharp.instructions.md
+│   ├── persistence.instructions.md
+│   ├── project-system.instructions.md
+│   └── testing.instructions.md
 └── skills/
     └── code-review/
         ├── SKILL.md
@@ -50,6 +51,7 @@ Then request **Copilot** as a reviewer on a pull request, or configure automatic
             ├── dapper.md
             ├── dotnet-performance.md
             ├── ef-core.md
+            ├── msbuild.md
             ├── security.md
             ├── testing.md
             └── webapi.md
@@ -60,27 +62,50 @@ Then request **Copilot** as a reviewer on a pull request, or configure automatic
 | File | Purpose |
 | --- | --- |
 | `.github/copilot-instructions.md` | Defines the global review contract: diff-first analysis, high-confidence findings, severity levels, evidence requirements, and noise-reduction rules. |
-| `csharp.instructions.md` | Reviews C# language usage, nullability, exceptions, resource disposal, cancellation, naming, and modern language features without forcing stylistic preferences. |
-| `aspnetcore.instructions.md` | Reviews ASP.NET Core endpoints, middleware, DI lifetimes, authentication/authorization, validation, Problem Details, configuration, health checks, and HTTP semantics. |
-| `testing.instructions.md` | Reviews unit/integration tests for meaningful assertions, determinism, isolation, edge cases, async correctness, and excessive mocking. |
-| `persistence.instructions.md` | Applies persistence-wide rules to EF Core, Dapper, ADO.NET, SQL, transactions, parameterization, query shape, and cancellation. |
+| `instructions/csharp.instructions.md` | Reviews C# language usage, nullability, exceptions, resource disposal, cancellation, naming, and modern language features without forcing stylistic preferences. |
+| `instructions/aspnetcore.instructions.md` | Reviews ASP.NET Core endpoints, middleware, DI lifetimes, authentication/authorization, validation, Problem Details, configuration, health checks, and HTTP semantics. |
+| `instructions/testing.instructions.md` | Reviews unit/integration tests for meaningful assertions, determinism, isolation, edge cases, async correctness, and excessive mocking. |
+| `instructions/persistence.instructions.md` | Applies persistence-wide rules to EF Core, Dapper, ADO.NET, SQL, transactions, parameterization, query shape, and cancellation. |
+| `instructions/project-system.instructions.md` | Applies targeted rules to `.csproj`, `.props`, `.targets`, `Directory.Build.*`, Central Package Management, `global.json`, solution files, packaging, and publish settings. |
 | `skills/code-review/SKILL.md` | Main review orchestrator. Determines which specialist references are relevant, prioritizes findings, and defines the expected review output. |
 | `references/architecture.md` | Checks dependency direction, boundaries, coupling, cohesion, API contracts, abstractions, and architectural consistency. It explicitly avoids recommending patterns without a concrete problem. |
 | `references/async-concurrency.md` | Checks sync-over-async, blocking calls, fire-and-forget work, cancellation propagation, race conditions, locks, shared state, `Task`/`ValueTask`, and async disposal. |
 | `references/dapper.md` | Checks parameterized SQL, connection/transaction ownership, buffering, multi-mapping, command timeouts, cancellation, result cardinality, and common Dapper pitfalls. |
 | `references/dotnet-performance.md` | Checks allocations, LINQ/string/collection usage, regex, serialization, I/O, pooling, hot-path concerns, and premature optimization risks. |
 | `references/ef-core.md` | Checks N+1 queries, tracking, projections, `Include`, split queries, pagination, query translation, indexes, bulk operations, transactions, and concurrency. |
+| `references/msbuild.md` | Checks target frameworks, SDK/language compatibility, package references, MSBuild conditions/imports/targets, Central Package Management, publish behavior, and NuGet packaging. |
 | `references/security.md` | Checks authentication, authorization, injection, secrets, sensitive logging, SSRF/path traversal, unsafe deserialization, cryptography, and secure configuration. |
 | `references/testing.md` | Provides the deeper test-review checklist used by the skill when test files or behavior changes are present. |
 | `references/webapi.md` | Checks API contracts, status codes, validation, cancellation, idempotency, pagination, versioning, Problem Details, HTTP semantics, and Minimal API/controller concerns. |
+
+## How the review works
+
+The skill uses a **diff-first** workflow:
+
+1. Understand the pull request intent and changed behavior.
+2. Inspect the diff before judging surrounding code.
+3. Run the core correctness/security/compatibility checks.
+4. Detect relevant technical signals in the changed files.
+5. Load only the specialist references that match those signals.
+6. Validate each candidate finding before reporting it.
+7. Prefer zero findings over speculative feedback.
+
+Examples:
+
+- A pull request changing `DbContext` queries loads the EF Core reference.
+- A Dapper repository change loads the Dapper and persistence guidance.
+- A `BackgroundService` change loads async/concurrency guidance.
+- A controller or Minimal API change loads Web API guidance and, when applicable, security guidance.
+- A `.csproj` or `Directory.Packages.props` change loads the MSBuild/NuGet reference.
+- A simple domain class change does **not** automatically load every specialist checklist.
 
 ## Review severity
 
 The skill uses four levels:
 
 - **BLOCKER** — exploitable security issues, data loss/corruption, severe correctness defects, deadlocks, or incompatible breaking changes that make merging unsafe.
-- **HIGH** — likely production defects, authorization mistakes, serious concurrency/resource issues, major regressions, or missing protection on critical behavior.
-- **MEDIUM** — maintainability, performance, testability, or architectural problems with concrete impact but that do not necessarily block the merge.
+- **HIGH** — likely production defects, authorization mistakes, serious concurrency/resource issues, major regressions, or build/package changes that break supported consumers or deployment targets.
+- **MEDIUM** — maintainability, performance, testability, architectural, or project-system problems with concrete impact but that do not necessarily block the merge.
 - **LOW** — useful, evidence-backed improvements that are genuinely relevant to the changed code. Style-only preferences should not be reported.
 
 ## Review philosophy
@@ -96,6 +121,7 @@ The reviewer should:
 7. Treat performance findings as context-dependent and avoid micro-optimization outside hot paths.
 8. Avoid duplicate comments when multiple lines share the same root cause.
 9. Prefer a small number of actionable findings over a large number of speculative observations.
+10. Respect the repository's actual `TargetFramework`, `LangVersion`, package-management model, and build conventions rather than requiring the newest .NET/C# feature.
 
 ## Customizing for a repository
 
@@ -111,7 +137,9 @@ Examples of useful project-specific additions:
 - database-specific constraints;
 - expected test frameworks and conventions;
 - performance-sensitive paths;
-- security or compliance requirements.
+- security or compliance requirements;
+- NuGet/package compatibility requirements;
+- deployment/publish constraints.
 
 For example, if a project deliberately uses Hexagonal Architecture, document its actual dependency rules in that project's `.github/copilot-instructions.md`. Do not make Hexagonal Architecture a universal requirement for every .NET repository.
 
@@ -124,6 +152,7 @@ The rules in this repository are consolidated and adapted rather than copied ver
 - [github/awesome-copilot](https://github.com/github/awesome-copilot)
 - [dotnet/skills](https://github.com/dotnet/skills)
 - [dotnet/skills — .NET performance analysis](https://github.com/dotnet/skills/tree/main/plugins/dotnet-diag/skills/analyzing-dotnet-performance)
+- [dotnet/skills — MSBuild code review agent](https://github.com/dotnet/skills/blob/main/plugins/dotnet-msbuild/agents/msbuild-code-review.agent.md)
 
 The .NET performance material in `dotnet/skills` is MIT-licensed. Review the licenses of upstream projects before directly copying upstream content into derivative distributions.
 
